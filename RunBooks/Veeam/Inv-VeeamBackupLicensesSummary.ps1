@@ -1,18 +1,17 @@
 #
 # Inv-VeeamBackupLicensesSummary.ps1
-# Version 2.1
+# Version 3.0
 # christian.dahlberg@crestit.se
 $ErrorActionPreference="Stop"
 $runserver=$env:computername
 Write-output "Running Inv-VeeamBackupLicensesSummary on server:$runserver"
 $TenantID=Get-AutomationVariable "EntraTenantID"
 $ClientSecretCredential=Get-AutomationPSCredential "EntraIDGraphRead"
-$mailcred=Get-AutomationPSCredential "MailCred"
+$mailfrom=Get-AutomationVariable "MailFrom"
 $mailto=Get-AutomationVariable "VeeamBackupLicensSummaryReport"
 Write-output "MailTo:$mailto"
-$customername="UnimedicGroup"
+$customername=Get-AutomationVariable "CustomerName"
 $lics=@()
-$from=$mailcred.username
 $module=get-module Microsoft.Graph
 if(!($module))
 {
@@ -80,25 +79,48 @@ foreach($var in $vars)
     $department=$department.replace('VL','')
     Write-output "Sending mail for department:$department"
     [string]$body=""
-    $body+="This is an summary of the Veeamlicensusage at the customer:$customername`r`n"
-    $body+="`r`n"
-    $body+="Department:$department`r`n"
+    $body+="<p>This is an summary of the Veeamlicensusage at the customer:$customername<br>"
+    $body+="<br>"
+    $body+="Department:$department<br>"
     $count=$var.Value
-    $body+="Count:$count`r`n"
-    $body+="`r`n"
+    $body+="Count:$count<br>"
+    $body+="<br>"
     #$body+="$newuserlist"
     
     $userlistvar="UL$department"
     $userlists=(Get-Variable -Name $userlistvar).Value
     foreach($userlist in $userlists)
     {
-        $body+=$userlist|out-string    
+        $body+="$userlist<br>"|out-string    
     }
     if($body -ne "")
     {
-        Send-MailMessage -To $mailto -Credential $mailcred -from $from -SmtpServer "smtp.office365.com" -Subject "$customern Veeam Office 365 Backup Licens Summary Report $customername" -body $body -Port 587 -UseSsl -erroraction Stop
+        $emailParams = @{
+        Message = @{
+        Subject = "$customern Veeam Office 365 Backup Licens Summary Report $customername"
+        Body    = @{
+            ContentType = "HTML"
+            Content     = $body
+        }
+        ToRecipients = @(
+            @{
+                EmailAddress = @{
+                    Address = $mailto
+                }
+            }
+            )
+        }
+        SaveToSentItems = $false
+        }
     }
-
+# Send the email
+try {
+        Send-MgUserMail -UserId $mailfrom -BodyParameter $emailParams
+        #Send-MailMessage -To $mailto -Credential $mailcred -from $from -SmtpServer "smtp.office365.com" -Subject "$customern Veeam Office 365 Backup Licens Summary Report $customername" -body $body -Port 587 -UseSsl -erroraction Stop
+    }
+Catch {
+    
+}
 
 
 }
