@@ -1,6 +1,6 @@
 #
 # Sync-IntuneDevicesToCrm.ps1
-# Version 1.9
+# Version 2.0
 # christian.dahlberg@crestit.se
 # Runs in Azure
 function Get-OsVersion
@@ -62,9 +62,9 @@ function Get-OsVersion
         return $buildNUMBER
     }
 }
-$AzureADCred=Get-AutomationPSCredential "AzureADCred"
-$IntuneReadAppID=Get-AutomationVariable 'IntuneReadAppID'
-$tenantId=Get-AutomationVariable 'CrestCRMTeantid'
+$AzureADCred=Get-AutomationPSCredential "EntraIDGraphRead"
+$IntuneReadAppID=Get-AutomationPSCredential "EntraIDGraphRead"
+$crmtenantId=Get-AutomationVariable 'CrestCRMTeantid'
 $clientId=Get-AutomationVariable 'CrestCRMclientid'
 $clientSecret=Get-AutomationVariable 'CrestCRMclientsecret'
 $environmentUrl=Get-AutomationVariable 'CrestCRMurl'
@@ -85,7 +85,7 @@ if(!$module)
     Write-output "Installing graph module"
     Install-Module Microsoft.Graph.Intune -Force -AllowClobber
 }
-$tokenUrl = "https://login.microsoftonline.com/$tenantId/oauth2/token"
+$tokenUrl = "https://login.microsoftonline.com/$crmtenantId/oauth2/token"
 $tokenBody = @{
     grant_type    = "client_credentials"
     client_id     = $clientId
