@@ -1,6 +1,6 @@
 #
 # Sync-IntuneDevicesToCrm.ps1
-# Version 2.0
+# Version 2.1
 # christian.dahlberg@crestit.se
 # Runs in Azure
 function Get-OsVersion
@@ -63,7 +63,7 @@ function Get-OsVersion
     }
 }
 $AzureADCred=Get-AutomationPSCredential "EntraIDGraphRead"
-$IntuneReadAppID=Get-AutomationPSCredential "EntraIDGraphRead"
+$tenantId=Get-AutomationVariable 'EntraTenantID'
 $crmtenantId=Get-AutomationVariable 'CrestCRMTeantid'
 $clientId=Get-AutomationVariable 'CrestCRMclientid'
 $clientSecret=Get-AutomationVariable 'CrestCRMclientsecret'
@@ -94,9 +94,8 @@ $tokenBody = @{
 }
 $tokenResponse = Invoke-RestMethod -Uri $tokenUrl -Method Post -Body $tokenBody
 $accessToken = $tokenResponse.access_token
-Update-MSGraphEnvironment -AppId $IntuneReadAppID
-Connect-MSGraph -Credential $azureadcred 
-$devices=Get-IntuneManagedDevice
+Connect-MgGraph -clientCredential $azureadcred -TenantId $tenantId -NoWelcome
+$devices=Get-MgDeviceManagementManagedDevice -All
 foreach($device in $devices)
 {
     $id=$device.id
@@ -165,5 +164,6 @@ foreach($device in $devices)
         Write-Output "Ny post skapad med visningsnamn '$visningsnamn'."
     }
 }
+Disconnect-MgGraph
 $message = "Finished running Sync-IntuneDevices"
 Write-Output $message
